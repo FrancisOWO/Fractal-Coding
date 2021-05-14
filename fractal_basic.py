@@ -110,9 +110,9 @@ def fractal_encode(I_in, R_len, D_len, D_ofs):
                 D_diff = D_seq[j][k] - D_mean
                 # R = s*D + o
                 sum_D_diff = sum(D_diff)
-                scale = 1
+                scale = 0
                 if sum_D_diff != 0:
-                    scale = np.dot(R_diff,D_diff)/(sum(D_diff)**2)      # 放缩因子
+                    scale = np.dot(R_diff,D_diff)/(sum_D_diff**2)      # 放缩因子
                 ofs = R_mean - scale*D_mean     # 偏移量
                 se = np.sum(scale*D_seq[j][k] + ofs - R_seq[i])**2  # 平方误差
                 # 存储最小平方误差对应的分形编码
@@ -141,6 +141,7 @@ def fractal_decode(code_table, I_init, iter_n, R_len, D_len, D_ofs):
 
     # 恢复图片（迭代）
     for k in range(iter_n):
+        print("------第",k,"次迭代------")
         I_temp = I_out.copy()
         for r in range(R_n):
             x = int(code_n[r]//D_col)
@@ -186,7 +187,8 @@ if __name__ == '__main__':
     I_init = np.zeros(I_src.shape, np.uint8)
     plt.imshow(I_init)   # 初始图
     plt.show()
-    
+
     I_out = fractal_decode(code_table, I_init, iter_n, R_len, D_len, D_ofs)
     plt.imshow(I_out)   # 恢复图
     plt.show()
+    
