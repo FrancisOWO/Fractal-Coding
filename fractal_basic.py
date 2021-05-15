@@ -89,33 +89,41 @@ def fractal_encode(I_in, R_len, D_len, D_ofs):
     for i in range(R_n):
         R_seq[i] = Rp[i].reshape(1,-1)[0]
     # 父图序列化
+    # 注：对Tn个变换，父图序列的均值、差值序列的模长一样，只需算一次
     D_seq = np.empty([D_n, T_n, R_len*R_len],np.uint8)
-    D_mean = np.empty((D_n,T_n))        # 均值
+    D_mean = np.empty(D_n)        # 均值
     D_diff = np.empty((D_n,T_n, R_len*R_len))   # 差值
-    D_diff_norm2 = np.empty((D_n,T_n))  # 向量的模**2
+    D_diff_norm2 = np.empty(D_n)  # 模**2
     for i in range(D_n):
-        for j in range(T_n):
+        j = 0
+        # 父图序列的均值、差值序列的模长只需算一次
+        D_seq[i][j] = Dp[i][j].reshape(1,-1)[0]
+        D_mean[i] = D_seq[i][j].mean()
+        D_diff[i][j] = D_seq[i][j] - D_mean[i]
+        D_diff_norm2[i] = np.dot(D_diff[i][j],D_diff[i][j])
+        # 其他变换中，只需算父图序列、差值序列
+        for j in range(1, T_n):
             D_seq[i][j] = Dp[i][j].reshape(1,-1)[0]
-            D_mean[i][j] = D_seq[i][j].mean()
-            D_diff[i][j] = D_seq[i][j] - D_mean[i][j]
-            D_diff_norm2[i][j] = np.dot(D_diff[i][j],D_diff[i][j])
+            D_diff[i][j] = D_seq[i][j] - D_mean[i]
 
     # 找R的最佳匹配D，记录SE(R,D)最小时的分形编码
     code_s = np.empty(R_n)  # 放缩因子
     code_o = np.empty(R_n)  # 偏移量
     code_n = np.empty(R_n, np.int)  # 父图编号
     code_t = np.empty(R_n, np.int)  # 变换方式
+    print("查找每个子图的最佳匹配......")
     for i in range(R_n):
-        print("i =", i)
+        if i % 10 == 0:
+            print("i =", i)
         R_mean = R_seq[i].mean()
         R_diff = R_seq[i] - R_mean
         mse = -1    # 最小平方误差
         for j in range(D_n):
             for k in range(T_n):
                 scale = 0
-                if D_diff_norm2[j][k] != 0:
-                    scale = np.dot(R_diff,D_diff[j][k])/D_diff_norm2[j][k]      # 放缩因子
-                ofs = R_mean - scale*D_mean[j][k]     # 偏移量
+                if D_diff_norm2[j] != 0:
+                    scale = np.dot(R_diff,D_diff[j][k])/D_diff_norm2[j]      # 放缩因子
+                ofs = R_mean - scale*D_mean[j]     # 偏移量
                 diff_seq = scale*D_seq[j][k] + ofs - R_seq[i]
                 se = np.dot(diff_seq, diff_seq)  # 平方误差
                 # 存储最小平方误差对应的分形编码
@@ -125,7 +133,7 @@ def fractal_encode(I_in, R_len, D_len, D_ofs):
                     code_o[i] = ofs     # 偏移量
                     code_n[i] = j       # 父图编号
                     code_t[i] = k       # 变换方式
-
+        #print("mse =",mse)
     # 返回分形编码(s,o,n,t)
     return [code_s,code_o,code_n,code_t]
 
@@ -171,20 +179,6 @@ def fractal_decode(code_table, I_init, iter_n, R_len, D_len, D_ofs):
     # 返回解码图片
     return I_out
 
-# 四邻域均值
-def get_avg_nei4(I_in):
-    row_n, col_n = I_in.shape
-    row_n = row_n//2
-    col_n = col_n//2
-    I_out = np.zeros((row_n,col_n),np.uint8)
-    for i in range(row_n):
-        for j in range(col_n):
-            I_out[i][j] = I_in[2*i:2*(i+1), 2*j:2*(j+1)].mean()
-            if I_out[i][j] != I_out[0][0]:
-                print("Diff")
-
-    return I_out
-    
 if __name__ == '__main__':
     # 读取图片
     img_path = "demo.jpg"
@@ -194,18 +188,18 @@ if __name__ == '__main__':
     plt.show()
 
     # 子图/父图大小
-    B_len = 16       # 块长
+    B_len = 8       # 块长
     R_len = B_len   # 子图大小B*B
     D_len = 2*B_len # 父图大小2B*2B
     D_ofs = B_len   # 父图步长B
     # 分形编码
-    print("------ 开始编码 ------")
+    print("********* 开始编码 *********")
     code_table = fractal_encode(I_src, R_len, D_len, D_ofs)
     # 分形解码
     I_init = np.zeros(I_src.shape, np.uint8)
     plt.imshow(I_init)   # 初始码本
     plt.show()
-    print("------ 开始解码 ------")
+    print("********* 开始解码 *********")
     iter_n = 1
     I_out = fractal_decode(code_table, I_init, iter_n, R_len, D_len, D_ofs)
     plt.imshow(I_out)    # 恢复图
