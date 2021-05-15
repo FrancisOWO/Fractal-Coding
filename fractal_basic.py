@@ -1,6 +1,7 @@
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
+from code_text import code2txt
 
 # 矩阵变换参数
 class Trans:
@@ -181,23 +182,27 @@ def fractal_decode(code_table, I_init, iter_n, R_len, D_len, D_ofs):
 
 if __name__ == '__main__':
     # 读取图片
-    img_path = "demo.jpg"
+    img_path = "demo256.jpg"
     I_src = np.asarray(Image.open(img_path).convert('L'))   # 转灰度图
     # np.asarray
     plt.imshow(I_src)   # 原图
     plt.show()
 
     # 子图/父图大小
-    B_len = 8       # 块长
+    I_row = I_src.shape[0]
+    B_len = I_row >> 5   # 块长：通常取4,8,16...
     R_len = B_len   # 子图大小B*B
     D_len = 2*B_len # 父图大小2B*2B
     D_ofs = B_len   # 父图步长B
     # 分形编码
     print("********* 开始编码 *********")
     code_table = fractal_encode(I_src, R_len, D_len, D_ofs)
+    print("********* 生成编码文件 *********")
+    code2txt(code_table, len(code_table[0]))
+
     # 分形解码
-    I_init = np.zeros(I_src.shape, np.uint8)
-    plt.imshow(I_init)   # 初始码本
+    I_init = np.zeros(I_src.shape, np.uint8)    # 初始码本（全0图片）
+    plt.imshow(I_init)
     plt.show()
     print("********* 开始解码 *********")
     iter_n = 1
