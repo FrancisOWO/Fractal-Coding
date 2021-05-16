@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import code_text
+from skimage.measure import compare_mse, compare_psnr, compare_ssim
 
 # 矩阵变换参数
 class Trans:
@@ -211,19 +212,53 @@ if __name__ == '__main__':
     R_col = col_n//R_len
     R_n = R_row * R_col
     # 获取编码表
-    file_code_str = "code.txt"
-    file_code_bin = "code_bin.txt"
+    file_code_str = "code_256.txt"
+    file_code_bin = "code_bin_256.txt"
     # code_table = code_text.txt2code_str(R_n, file_code_bin)
     code_table = code_text.txt2code_bin(R_n, file_code_bin)
     I_init = np.zeros(I_src.shape, np.uint8)    # 初始码本（全0图片）
     plt.imshow(I_init, cmap='gray')
     plt.show()
     print("********* 开始解码 *********")
-    I_out = I_init
+    seq_n = 20
+    mse_seq = np.empty(seq_n)   # 均方误差
+    psnr_seq = np.empty(seq_n)  # 峰值信噪比
+    ssim_seq = np.empty(seq_n)  # 结构相似性
     iter_n = 1
-    for i in range(10):
+    I_out = I_init
+    for i in range(seq_n):
         I_out = fractal_decode(code_table, I_out, iter_n, R_len, D_len, D_ofs)
+        # 衡量指标
+        mse_seq[i] = compare_mse(I_src, I_out)      # 均方误差
+        psnr_seq[i] = compare_psnr(I_src, I_out)    # 峰值信噪比
+        ssim_seq[i] = compare_ssim(I_src, I_out)    # 结构相似性
         # 显示恢复图
         plt.imshow(I_out, cmap='gray')
         plt.show()
+
+    # 查看衡量指标
+    print("均方误差MSE：\n", mse_seq)
+    print("峰值信噪比PSNR：\n", psnr_seq)
+    print("结构相似性SSIM：\n", ssim_seq)
+
+    # 绘制图表
+    if seq_n > 12:
+        seq_n = 12
+    plt.rcParams["font.family"] = "SimHei"
+    plt.rcParams["font.size"] = "14"
+    # MSE
+    plt.xlabel("迭代次数")
+    plt.ylabel("均方误差MSE")
+    plt.plot(range(seq_n), mse_seq[:seq_n])
+    plt.show()
+    # PSNR
+    plt.xlabel("迭代次数")
+    plt.ylabel("峰值信噪比PSNR")
+    plt.plot(range(seq_n), psnr_seq[:seq_n])
+    plt.show()
+    # SSIM
+    plt.xlabel("迭代次数")
+    plt.ylabel("结构相似性SSIM")
+    plt.plot(range(seq_n), ssim_seq[:seq_n])
+    plt.show()
 
