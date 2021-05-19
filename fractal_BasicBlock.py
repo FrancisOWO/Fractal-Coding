@@ -191,7 +191,7 @@ if __name__ == '__main__':
 
     # 子图/父图大小
     I_row = I_src.shape[0]
-    B_len = I_row >> 4   # 块长：通常取4,8,16...
+    B_len = I_row >> 6   # 块长：通常取4,8,16...
     R_len = B_len   # 子图大小B*B
     D_len = 2*B_len # 父图大小2B*2B
     D_ofs = B_len   # 父图步长B
@@ -212,10 +212,19 @@ if __name__ == '__main__':
     R_col = col_n//R_len
     R_n = R_row * R_col
     # 获取编码表
-    file_code_str = "code_256.txt"
-    file_code_bin = "code_bin_256.txt"
+    #file_code_str = "code.txt"
+    file_code_bin = "code_bin_4096.txt"
     # code_table = code_text.txt2code_str(R_n, file_code_bin)
     code_table = code_text.txt2code_bin(R_n, file_code_bin)
+    # 量化
+    s_bit, o_bit = 3, 5
+    for i in range(R_n):
+        factor = (2<<s_bit)
+        code_table[0][i] = int(code_table[0][i]*factor+0.5)/factor
+    for i in range(R_n):
+        factor = (2<<o_bit)
+        code_table[1][i] = int(code_table[1][i]*factor+0.5)/factor
+
     I_init = np.zeros(I_src.shape, np.uint8)    # 初始码本（全0图片）
     plt.imshow(I_init, cmap='gray')
     plt.show()

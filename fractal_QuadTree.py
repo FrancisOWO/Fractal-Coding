@@ -237,8 +237,8 @@ if __name__ == '__main__':
     lenna_rgb_512x512 = io.imread('data/lena.jpg')
     # lenna_rgb_256x256 = resize(lenna_rgb_512x512, (256, 256))
     lenna_gray_256x256 = np.rint(rgb2gray(lenna_rgb_512x512) * 255).astype('uint8')
-    result_16x4 = _quadtree_compress(image=lenna_gray_256x256, block_size=32, threshold=60)
-
+    result_16x4 = _quadtree_compress(image=lenna_gray_256x256, block_size=32, threshold=200)
+    print(len(codebook))
     # get both baks
     codebook_bak = copy.deepcopy(codebook)
     _quad_split_bak = copy.deepcopy(_quad_split)
